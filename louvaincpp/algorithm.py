@@ -18,7 +18,7 @@ def get_adj(G):
     return connectivity, weights
 
 
-def metric_louvain(G, X, metric="silhouette", verbose=False):
+def metric_louvain(G, X, metric="silhouette", verbose=False, **kwargs):
     from sklearn.metrics import silhouette_score
 
     start_time = time.time()
@@ -59,7 +59,7 @@ def metric_louvain(G, X, metric="silhouette", verbose=False):
     return best_y
 
 
-def louvain(G, verbose=False):
+def louvain(G, verbose=False, **kwargs):
     from cylouvain import modularity as md
     from sklearn.metrics import silhouette_score
 
