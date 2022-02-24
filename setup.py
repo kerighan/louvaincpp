@@ -12,7 +12,7 @@ ext_modules = [
         include_dirs=[
             pybind11.get_include(),
             pybind11.get_include(True), ],
-        extra_compile_args=["-Ofast", "-std=c++11"])
+        extra_compile_args=["-Ofast", "-std=c++17"])
 ]
 
 
