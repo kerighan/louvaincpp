@@ -1,106 +1,60 @@
-import time
-
 import networkx as nx
 import numpy as np
-from _louvaincpp2 import modularity, one_level
-from scipy.sparse import csr_matrix
+from _louvaincpp import generate_dendrogram, generate_full_dendrogram
 
 
-def get_adj(G):
-    connectivity = [[] for _ in range(len(G.nodes))]
-    weights = [[] for _ in range(len(G.nodes))]
-    for node in G.nodes:
-        cnn = connectivity[node]
-        w = weights[node]
-        for neighbor in G.neighbors(node):
-            cnn.append(neighbor)
-            w.append(G.edges[node, neighbor].get("weight", 1.))
-    return connectivity, weights
+def generate_partition(dendrogram, level):
+    partition = range(len(dendrogram[-level]))
+    for i in range(level, len(dendrogram) + 1):
+        new_partition = dict()
+        for j in range(len(dendrogram[-i])):
+            new_partition[j] = partition[dendrogram[-i][j]]
+        partition = new_partition
+    return partition
 
 
-def metric_louvain(G, X, metric="silhouette", verbose=False, **kwargs):
-    from sklearn.metrics import silhouette_score
+def partition_to_vec(partition):
+    y = np.zeros(len(partition), dtype=int)
+    for i, val in partition.items():
+        y[i] = val
+    return y
 
-    start_time = time.time()
 
-    n_nodes = len(G.nodes)
-    connectivity, weights = get_adj(G)
-    C = {i: i for i in range(n_nodes)}
-    y = np.arange(n_nodes)
+def louvain(G, resolution=1, prune=False, **_):
+    A = nx.adjacency_matrix(G)
 
-    modified = True
-    partition = [[i] for i in range(n_nodes)]
+    dendrogram = generate_dendrogram(
+        A.indptr, A.indices, A.data, resolution, prune)
+
+    partition = range(len(dendrogram[-1]))
+    for i in range(1, len(dendrogram) + 1):
+        new_partition = dict()
+        for j in range(len(dendrogram[-i])):
+            new_partition[j] = partition[dendrogram[-i][j]]
+        partition = new_partition
+    return partition
+
+
+def metric_louvain(
+    G, X=None, resolution=1, prune=False, **_
+):
+    from sklearn.metrics import davies_bouldin_score as scoring
+
+    A = nx.adjacency_matrix(G)
+
+    dendrogram = generate_full_dendrogram(
+        A.indptr, A.indices, A.data, resolution, prune)
 
     best_score = -float("inf")
-    best_y = y
-    while modified:
-        connectivity, weights, C, cm2nodes, modified = one_level(
-            connectivity, weights, C)
-
-        new_partition = [[] for _ in range(len(cm2nodes))]
-        for i, nodes in enumerate(cm2nodes):
-            for node in nodes:
-                new_partition[i].extend(partition[node])
-        partition = new_partition
-
-        for i, nodes in enumerate(partition):
-            for node in nodes:
-                y[node] = i
-
-        if len(partition) > 1:
-            score = silhouette_score(X, y)
-            if score > best_score:
-                best_score = score
-                best_y = y.copy()
-
-    if verbose:
-        elapsed = time.time() - start_time
-        print(f"T={elapsed:.2f}s")
+    best_y = None
+    for level in range(1, len(dendrogram) + 1):
+        partition = generate_partition(dendrogram, level)
+        y = partition_to_vec(partition)
+        try:
+            score = -scoring(X, y)
+        except ValueError:
+            score = -float("inf")
+        if score >= best_score:
+            best_y = y.copy()
+            best_score = score
     return best_y
-
-
-def louvain(G, verbose=False, **kwargs):
-    from cylouvain import modularity as md
-    from sklearn.metrics import silhouette_score
-
-    start_time = time.time()
-
-    n_nodes = len(G.nodes)
-    connectivity, weights = get_adj(G)
-    C = {i: i for i in range(n_nodes)}
-    y = np.arange(n_nodes)
-
-    conn = connectivity.copy()
-    wg = weights.copy()
-
-    modified = True
-    partition = [[i] for i in range(n_nodes)]
-
-    best_Q = -float("inf")
-    while modified:
-        connectivity, weights, C, cm2nodes, modified = one_level(
-            connectivity, weights, C)
-
-        new_partition = [[] for _ in range(len(cm2nodes))]
-        for i, nodes in enumerate(cm2nodes):
-            for node in nodes:
-                new_partition[i].extend(partition[node])
-        partition = new_partition
-
-        test = {}
-        y_old = y.copy()
-        for i, nodes in enumerate(partition):
-            for node in nodes:
-                y[node] = i
-                test[node] = i
-
-        Q = modularity(test, conn, wg)
-        if Q < best_Q:
-            y = y_old
-            break
-        best_Q = Q
-
-    if verbose:
-        elapsed = time.time() - start_time
-        print(f"T={elapsed:.2f}s")
-    return y

@@ -6,11 +6,14 @@ namespace py = pybind11;
 
 PYBIND11_MODULE(_louvaincpp, m)
 {
-    m.def("get_sigma", &get_sigma, "get sigma tot");
-    m.def("neighcom", &neighcom, "neighbors communities");
-    m.def("move_nodes", &move_nodes, "move nodes");
-    m.def("renumber", &renumber, "renumber");
-    m.def("induced_graph", &induced_graph, "induced graph");
-    m.def("one_level", &one_level, "one_level");
-    m.def("modularity", &modularity, "modularity");
+    m.def("get_adj", &get_adj);
+    m.def("init_status", &init_status);
+    m.def("neighcom", &neighcom);
+    m.def("modularity", &modularity);
+    m.def("one_level", &one_level);
+    m.def("renumber", &renumber);
+    m.def("induced_graph", &induced_graph);
+    m.def("get_partition", &get_partition);
+    m.def("generate_dendrogram", &generate_dendrogram);
+    m.def("generate_full_dendrogram", &generate_full_dendrogram);
 }
