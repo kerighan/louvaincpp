@@ -17,7 +17,7 @@ ext_modules = [
 
 setup(
     name="louvaincpp",
-    version="0.0.2",
+    version="0.0.3",
     author="Maixent Chenebaux",
     author_email="max.chbx@gmail.com",
     packages=find_packages(),
