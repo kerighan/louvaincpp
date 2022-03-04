@@ -38,7 +38,9 @@ def louvain(G, resolution=1, prune=False, **_):
 def metric_louvain(
     G, X=None, resolution=1, prune=False, **_
 ):
-    from sklearn.metrics import davies_bouldin_score as scoring
+    from sklearn.metrics import silhouette_score as scoring
+
+    # from sklearn.metrics import calinski_harabasz_score as scoring
 
     A = nx.adjacency_matrix(G)
 
@@ -51,7 +53,7 @@ def metric_louvain(
         partition = generate_partition(dendrogram, level)
         y = partition_to_vec(partition)
         try:
-            score = -scoring(X, y)
+            score = scoring(X, y)
         except ValueError:
             score = -float("inf")
         if score >= best_score:
